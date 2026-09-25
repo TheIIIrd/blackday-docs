@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Git-хук: не даёт закоммитить приватные данные в публичную документацию.
+# Установка: ln -s ../../tools/pre-commit .git/hooks/pre-commit
+set -euo pipefail
+exec python3 "$(git rev-parse --show-toplevel)/tools/leakcheck.py" --staged

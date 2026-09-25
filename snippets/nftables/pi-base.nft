@@ -1,0 +1,38 @@
+#!/usr/sbin/nft -f
+# Файрвол одноплатника — шаг 20: только SSH и NTP из домашней сети.
+flush ruleset
+
+define LAN4 = 192.0.2.0/24
+
+table inet filter {
+    chain input {
+        type filter hook input priority filter; policy drop;
+
+        # Ответы на наши собственные соединения
+        ct state established,related accept
+        ct state invalid drop
+
+        # Локальные процессы
+        iif "lo" accept
+
+        # ICMP и ICMPv6: ping, диагностика, а для IPv6 это ещё и обнаружение
+        # соседей (без ICMPv6 IPv6 просто перестаёт работать)
+        meta l4proto { icmp, ipv6-icmp } accept
+
+        # SSH — только из домашней сети
+        ip  saddr $LAN4     tcp dport 22  accept
+        ip6 saddr fe80::/10 tcp dport 22  accept
+
+        # NTP-сервер для домашней сети
+        ip  saddr $LAN4     udp dport 123 accept
+    }
+
+    chain forward {
+        type filter hook forward priority filter; policy drop;
+        # Маршрутизации пока нет. Появится, когда Pi станет шлюзом.
+    }
+
+    chain output {
+        type filter hook output priority filter; policy accept;
+    }
+}
